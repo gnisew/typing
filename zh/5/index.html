@@ -568,6 +568,9 @@
 		function handleInput(event) {
 			if (event.key === 'Enter') {
 				const typedWord = input.value.trim();
+				if (typedWord === '') {
+					return; // 如果輸入為空，直接返回，不做任何操作
+				}
 				if (currentWord && typedWord === currentWord.data.word) {
 					clearTimeout(currentWord.fallTimeout);
 					wordContainer.removeChild(currentWord.element);
@@ -580,7 +583,7 @@
 				} else {
 					updateScore(-10);
 					if (currentWord) {
-						pinyinDisplay.textContent = `${currentWord.data.pinyin}`; // 拼音提示;
+						pinyinDisplay.textContent = `${currentWord.data.pinyin}`; // 拼音提示
 						penaltyTime -= 1000;
 						updateWordSpeed();
 					}
