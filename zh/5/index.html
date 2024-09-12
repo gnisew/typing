@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🥷烏衣行打字遊戲</title>
+    <style>
+        body {
+            font-family: "Microsoft JhengHei", Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #game-container {
+            width: 500px;
+            height: 90vh;
+            max-height: 600px;
+            border: 2px solid #aaa;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        #settings, #game, #results {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: white;
+        }
+        #game, #results {
+            display: none;
+        }
+
+
+        select, button, input {
+            margin: 10px;
+            padding: 5px;
+            font-size: 16px;
+        }
+        #word-container {
+            width: 100%;
+            height: 70%; /* 調整單詞容器高度 */
+            position: relative;
+            overflow: hidden;
+        }
+        .word {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 32px;
+            animation: fall linear;
+        }
+        @keyframes fall {
+            from { top: 0px; }
+            to { top: 100%; }
+        }
+        #score, #timer {
+            position: absolute;
+            top: 15px;
+            font-size: 16px;
+        }
+        #score {
+            right: 15px;
+        }
+        #timer {
+            left: 60px;
+        }
+        #pinyin {
+            font-size: 16px;
+            color: #666;
+            height: 20px;
+            margin-bottom: 5px;
+        }
+        #input-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px;
+            width: 100%;
+        }
+        #input {
+            width: 60%; /* 調整寬度，可以根據需要更改 */
+            max-width: 250px; /* 設置最大寬度 */
+            padding: 8px 12px; /* 調整內邊距 */
+            font-size: 24px; /* 調整字體大小 */
+            text-align: center;
+            border: 2px solid #ccc; /* 添加邊框 */
+            border-radius: 20px; /* 圓角邊框 */
+            outline: none; /* 移除焦點時的外邊框 */
+            transition: border-color 0.3s ease; /* 添加過渡效果 */
+        }
+        #input:focus {
+            border-color: #0077cc;
+        }
+        select {
+            width: 200px;
+        }
+
+        #results {
+            text-align: center;
+        }
+        #game-stats {
+            margin-top: 20px;
+            text-align: left;
+            display: inline-block;
+        }
+        #game-stats p {
+            margin: 5px 0;
+        }
+
+
+
+
+        #end-button {
+            position: absolute;
+            top: 0px;
+            left: 10px;
+            width: 30px;
+            height: 30px;
+            background-color: #ccc;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        #end-button:hover {
+            background-color: #ff1a1a;
+        }
+        #game {
+            /* ... 其他原有樣式 ... */
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+	
+        <div id="settings">
+		<h1>🥷康軒小五打字大賽</h1>
+            <select id="category"></select>
+            <select id="order">
+                <option value="sequential">按順序</option>
+                <option value="random">隨機</option>
+            </select>
+
+            <select id="time">
+                <option value="60">60 秒</option>
+                <option value="90">90 秒</option>
+                <option value="120">120 秒</option>
+                <option value="stopwatch">碼表</option>
+            </select>
+
+            <select id="speed">
+                <option value="slow" selected>平穩</option>
+                <option value="medium">快走</option>
+                <option value="fast">奔跑</option>
+            </select>
+            <button id="start-button">開始遊戲</button>
+        </div>
+        <div id="game">
+            <button id="end-button">X</button>
+            <div id="word-container"></div>
+            <div id="input-area">
+                <input type="text" id="input" placeholder="">
+            </div>
+            <div id="pinyin"></div>
+            <div id="score">得分: 0</div>
+            <div id="timer">時間: 0</div>
+        </div>
+        <div id="results">
+            <h2>🎊努力成果</h2>
+            <p id="final-score"></p>
+            <div id="game-stats">
+                <p id="category-result"></p>
+                <p id="order-result"></p>
+                <p id="time-result"></p>
+                <p id="speed-result"></p>
+            </div>
+            <button id="return-button">返回 🛸</button>
+        </div>
+    </div>
+
+    <script>
+        const data = `
+康5101	蚊帳	ㄨㄣˊ ㄓㄤˋ	蚊帳
+康5101	非洲	ㄈㄟ ㄓㄡ	非洲
+康5101	瘧疾	ㄋㄩㄝˋ ㄐㄧˊ	瘧疾
+康5101	鼓勵	ㄍㄨˇ ㄌㄧˋ	鼓勵
+康5101	募集	ㄇㄨˋ ㄐㄧˊ	募集
+康5101	捐贈	ㄐㄩㄢ ㄗㄥˋ	捐贈
+康5101	義賣	ㄧˋ ㄇㄞˋ	義賣
+康5101	獎狀	ㄐㄧㄤˇ ㄓㄨㄤˋ	獎狀
+康5101	雜誌	ㄗㄚˊ ㄓˋ	雜誌
+康5101	基金會	ㄐㄧ ㄐㄧㄣ ㄏㄨㄟˋ	基金會
+康5101	潛力	ㄑㄧㄢˊ ㄌㄧˋ	潛力
+康5102	德國	ㄉㄜˊ ㄍㄨㄛˊ	德國
+康5102	似乎	ㄙˋ ㄏㄨ	似乎
+康5102	血液	ㄒㄩㄝˋ ㄧˋ	血液
+康5102	拍攝	ㄆㄞ ㄕㄜˋ	拍攝
+康5102	颱風	ㄊㄞˊ ㄈㄥ	颱風
+康5102	記錄	ㄐㄧˋ ㄌㄨˋ	記錄
+康5102	哀愁	ㄞ ㄔㄡˊ	哀愁
+康5102	山巒	ㄕㄢ ㄌㄨㄢˊ	山巒
+康5102	縱谷	ㄗㄨㄥˋ ㄍㄨˇ	縱谷
+康5102	臍帶	ㄑㄧˊ ㄉㄞˋ	臍帶
+康5102	人禍	ㄖㄣˊ ㄏㄨㄛˋ	人禍
+康5102	殘破	ㄘㄢˊ ㄆㄛˋ	殘破
+康5102	檳榔	ㄅㄧㄥ ㄌㄤˊ	檳榔
+康5102	汙水	ㄨ ㄕㄨㄟˇ	汙水
+康5103	憧憬	ㄔㄨㄥ ㄐㄧㄥˇ	憧憬
+康5103	無止境	ㄨˊ ㄓˇ ㄐㄧㄥˋ	無止境
+康5103	祈願	ㄑㄧˊ ㄩㄢˋ	祈願
+康5103	凝望	ㄋㄧㄥˊ ㄨㄤˋ	凝望
+康5103	洋溢	ㄧㄤˊ ㄧˋ	洋溢
+康5103	藉由	ㄐㄧㄝˋ ㄧㄡˊ	藉由
+康5103	詩句	ㄕ ㄐㄩˋ	詩句
+康5103	廣闊	ㄍㄨㄤˇ ㄎㄨㄛˋ	廣闊
+康5103	象徵	ㄒㄧㄤˋ ㄓㄥ	象徵
+康5103	強烈	ㄑㄧㄤˊ ㄌㄧㄝˋ	強烈
+康5103	確定	ㄑㄩㄝˋ ㄉㄧㄥˋ	確定
+康5103	顯現	ㄒㄧㄢˇ ㄒㄧㄢˋ	顯現
+康5103	豐富	ㄈㄥ ㄈㄨˋ	豐富
+康5103	即使	ㄐㄧˊ ㄕˇ	即使
+康5104	恆久	ㄏㄥˊ ㄐㄧㄡˇ	恆久
+康5104	黃澄澄	ㄏㄨㄤˊ ㄔㄥˊ ㄔㄥˊ	黃澄澄
+康5104	稻穗	ㄉㄠˋ ㄙㄨㄟˋ	稻穗
+康5104	養活	ㄧㄤˇ ㄏㄨㄛˊ	養活
+康5104	來源	ㄌㄞˊ ㄩㄢˊ	來源
+康5104	藝術家	ㄧˋ ㄕㄨˋ ㄐㄧㄚ	藝術家
+康5104	樸實	ㄆㄨˊ ㄕˊ	樸實
+康5104	撿拾	ㄐㄧㄢˇ ㄕˊ	撿拾
+康5104	頭巾	ㄊㄡˊ ㄐㄧㄣ	頭巾
+康5104	樸素	ㄆㄨˊ ㄙㄨˋ	樸素
+康5104	尊嚴	ㄗㄨㄣ ㄧㄢˊ	尊嚴
+康5104	任勞任怨	ㄖㄣˋ ㄌㄠˊ ㄖㄣˋ ㄩㄢˋ	任勞任怨
+康5104	慷慨	ㄎㄤ ㄎㄞˇ	慷慨
+康5104	滋潤	ㄗ ㄖㄨㄣˋ	滋潤
+康5105	商譽	ㄕㄤ ㄩˋ	商譽
+康5105	服務	ㄈㄨˊ ㄨˋ	服務
+康5105	關聯	ㄍㄨㄢ ㄌㄧㄢˊ	關聯
+康5105	核准	ㄏㄜˊ ㄓㄨㄣˇ	核准
+康5105	申請	ㄕㄣ ㄑㄧㄥˇ	申請
+康5105	黑松	ㄏㄟ ㄙㄨㄥ	黑松
+康5105	註冊	ㄓㄨˋ ㄘㄜˋ	註冊
+康5105	企業	ㄑㄧˋ ㄧㄝˋ	企業
+康5105	歷經	ㄌㄧˋ ㄐㄧㄥ	歷經
+康5105	英文	ㄧㄥ ㄨㄣˊ	英文
+康5105	銷售	ㄒㄧㄠ ㄕㄡˋ	銷售
+康5105	舉辦	ㄐㄩˇ ㄅㄢˋ	舉辦
+康5105	霸主	ㄅㄚˋ ㄓㄨˇ	霸主
+康5105	項目	ㄒㄧㄤˋ ㄇㄨˋ	項目
+康5106	融合	ㄖㄨㄥˊ ㄏㄜˊ	融合
+康5106	娛樂	ㄩˊ ㄌㄜˋ	娛樂
+康5106	汽船	ㄑㄧˋ ㄔㄨㄢˊ	汽船
+康5106	分鐘	ㄈㄣ ㄓㄨㄥ	分鐘
+康5106	口哨	ㄎㄡˇ ㄕㄠˋ	口哨
+康5106	觀眾	ㄍㄨㄢ ㄓㄨㄥˋ	觀眾
+康5106	經典	ㄐㄧㄥ ㄉㄧㄢˇ	經典
+康5106	戰爭	ㄓㄢˋ ㄓㄥ	戰爭
+康5106	平衡	ㄆㄧㄥˊ ㄏㄥˊ	平衡
+康5106	共鳴	ㄍㄨㄥˋ ㄇㄧㄥˊ	共鳴
+康5106	框架	ㄎㄨㄤ ㄐㄧㄚˋ	框架
+康5106	屬於	ㄕㄨˇ ㄩˊ	屬於
+康5106	劇情	ㄐㄩˋ ㄑㄧㄥˊ	劇情
+康5106	獲得	ㄏㄨㄛˋ ㄉㄜˊ	獲得
+康5106	細膩	ㄒㄧˋ ㄋㄧˋ	細膩
+康5106	選擇	ㄒㄩㄢˇ ㄗㄜˊ	選擇
+康5106	樣貌	ㄧㄤˋ ㄇㄠˋ	樣貌
+康5106	感官	ㄍㄢˇ ㄍㄨㄢ	感官
+康5107	逆風	ㄋㄧˋ ㄈㄥ	逆風
+康5107	可憐	ㄎㄜˇ ㄌㄧㄢˊ	可憐
+康5107	峭壁	ㄑㄧㄠˋ ㄅㄧˋ	峭壁
+康5107	物競天擇	ㄨˋ ㄐㄧㄥˋ ㄊㄧㄢ ㄗㄜˊ	物競天擇
+康5107	好逸惡勞	ㄏㄠˋ ㄧˋ ㄨˋ ㄌㄠˊ	好逸惡勞
+康5107	項鍊	ㄒㄧㄤˋ ㄌㄧㄢˋ	項鍊
+康5107	渾圓	ㄏㄨㄣˊ ㄩㄢˊ	渾圓
+康5107	醜陋	ㄔㄡˇ ㄌㄡˋ	醜陋
+康5107	代價	ㄉㄞˋ ㄐㄧㄚˋ	代價
+康5107	盲人	ㄇㄤˊ ㄖㄣˊ	盲人
+康5108	巴基斯坦	ㄅㄚ ㄐㄧ ㄙ ㄊㄢˇ	巴基斯坦
+康5108	父親	ㄈㄨˋ ㄑㄧㄣ	父親
+康5108	恐怖	ㄎㄨㄥˇ ㄅㄨˋ	恐怖
+康5108	組織	ㄗㄨˇ ㄓ	組織
+康5108	霸占	ㄅㄚˋ ㄓㄢˋ	霸占
+康5108	廣播	ㄍㄨㄤˇ ㄅㄛˋ	廣播
+康5108	控制	ㄎㄨㄥˋ ㄓˋ	控制
+康5108	攻擊	ㄍㄨㄥ ㄐㄧˊ	攻擊
+康5108	威脅	ㄨㄟ ㄒㄧㄝˊ	威脅
+康5108	康復	ㄎㄤ ㄈㄨˋ	康復
+康5108	軟弱	ㄖㄨㄢˇ ㄖㄨㄛˋ	軟弱
+康5108	武器	ㄨˇ ㄑㄧˋ	武器
+康5108	震撼	ㄓㄣˋ ㄏㄢˋ	震撼
+康5108	恐懼	ㄎㄨㄥˇ ㄐㄩˋ	恐懼
+康5109	挫折	ㄘㄨㄛˋ ㄓㄜˊ	挫折
+康5109	維持	ㄨㄟˊ ㄔˊ	維持
+康5109	崎嶇	ㄑㄧˊ ㄑㄩ	崎嶇
+康5109	艱辛	ㄐㄧㄢ ㄒㄧㄣ	艱辛
+康5109	初稿	ㄔㄨ ㄍㄠˇ	初稿
+康5109	系列	ㄒㄧˋ ㄌㄧㄝˋ	系列
+康5109	翻譯	ㄈㄢ ㄧˋ	翻譯
+康5109	減少	ㄐㄧㄢˇ ㄕㄠˇ	減少
+康5109	給予	ㄐㄧˇ ㄩˇ	給予
+康5109	幼芽	ㄧㄡˋ ㄧㄚˊ	幼芽
+康5109	椰子	ㄧㄝˊ ㄗˇ	椰子
+康5109	腐爛	ㄈㄨˇ ㄌㄢˋ	腐爛
+康5109	鍛造	ㄉㄨㄢˋ ㄗㄠˋ	鍛造
+康5110	唐朝	ㄊㄤˊ ㄔㄠˊ	唐朝
+康5110	恬淡	ㄊㄧㄢˊ ㄉㄢˋ	恬淡
+康5110	日暮	ㄖˋ ㄇㄨˋ	日暮
+康5110	柴扉	ㄔㄞˊ ㄈㄟ	柴扉
+康5110	完畢	ㄨㄢˊ ㄅㄧˋ	完畢
+康5110	傍晚	ㄅㄤˋ ㄨㄢˇ	傍晚
+康5110	閒適	ㄒㄧㄢˊ ㄕˋ	閒適
+康5110	幽人	ㄧㄡ ㄖㄣˊ	幽人
+康5110	隱居	ㄧㄣˇ ㄐㄩ	隱居
+康5110	官職	ㄍㄨㄢ ㄓˊ	官職
+康5110	吟唱	ㄧㄣˊ ㄔㄤˋ	吟唱
+康5110	空曠	ㄎㄨㄥ ㄎㄨㄤˋ	空曠
+康5111	疤痕	ㄅㄚ ㄏㄣˊ	疤痕
+康5111	鐵罐	ㄊㄧㄝˇ ㄍㄨㄢˋ	鐵罐
+康5111	咚咚	ㄉㄨㄥ ㄉㄨㄥ	咚咚
+康5111	碰運氣	ㄆㄥˋ ㄩㄣˋ ㄑㄧˋ	碰運氣
+康5111	傾盆	ㄑㄧㄥ ㄆㄣˊ	傾盆
+康5111	營火	ㄧㄥˊ ㄏㄨㄛˇ	營火
+康5111	崇拜	ㄔㄨㄥˊ ㄅㄞˋ	崇拜
+康5111	棄置	ㄑㄧˋ ㄓˋ	棄置
+康5111	奄奄一息	ㄧㄢˇ ㄧㄢˇ ㄧˋ ㄒㄧ	奄奄一息
+康5111	小心翼翼	ㄒㄧㄠˇ ㄒㄧㄣ ㄧˋ ㄧˋ	小心翼翼
+康5111	祈禱	ㄑㄧˊ ㄉㄠˇ	祈禱
+康5111	吼聲	ㄏㄡˇ ㄕㄥ	吼聲
+康5111	喉嚨	ㄏㄡˊ ㄌㄨㄥˊ	喉嚨
+康5112	暈船	ㄩㄣ ㄔㄨㄢˊ	暈船
+康5112	黃昏	ㄏㄨㄤˊ ㄏㄨㄣ	黃昏
+康5112	船艙	ㄔㄨㄢˊ ㄘㄤ	船艙
+康5112	途中	ㄊㄨˊ ㄓㄨㄥ	途中
+康5112	野獸	ㄧㄝˇ ㄕㄡˋ	野獸
+康5112	擱淺	ㄍㄜ ㄑㄧㄢˇ	擱淺
+康5112	礁岩	ㄐㄧㄠ ㄧㄢˊ	礁岩
+康5112	木筏	ㄇㄨˋ ㄈㄚˊ	木筏
+康5112	倒塌	ㄉㄠˇ ㄊㄚ	倒塌
+康5112	鸚哥	ㄧㄥ ㄍㄜ	鸚哥
+康5112	烤爐	ㄎㄠˇ ㄌㄨˊ	烤爐
+`;
+
+        const words = data.trim().split('\n').slice(1).map(line => {
+            const [category, word, pinyin, meaning] = line.split('\t');
+            return { category, word, pinyin, meaning };
+        });
+
+        const settings = document.getElementById('settings');
+        const game = document.getElementById('game');
+        const results = document.getElementById('results');
+        const categorySelect = document.getElementById('category');
+        const orderSelect = document.getElementById('order');
+        const timeSelect = document.getElementById('time');
+        const startButton = document.getElementById('start-button');
+        const wordContainer = document.getElementById('word-container');
+        const input = document.getElementById('input');
+        const pinyinDisplay = document.getElementById('pinyin');
+        const scoreDisplay = document.getElementById('score');
+        const timerDisplay = document.getElementById('timer');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const returnButton = document.getElementById('return-button');
+        const speedSelect = document.getElementById('speed');
+
+        let isStopwatch = false;
+        let startTime;
+        let endTime;
+
+        let currentSpeed = 'slow';
+		let baseSpeed = 'slow';
+		let penaltyTime = 0;
+
+        let gameWords = [];
+        let currentWordIndex = 0;
+        let score = 0;
+        let timeLeft = 60;
+        let timerInterval;
+        let currentWord = null;
+
+		// 解析 data 字符串
+		const parseData = (dataString) => {
+			return dataString.trim().split('\n').slice(1).map(line => {
+				const [category, word, pinyin, meaning] = line.split('\t');
+				return { category, word, pinyin, meaning };
+			});
+		};
+
+		// 獲取唯一的分類
+		const getUniqueCategories = (parsedData) => {
+			return [...new Set(parsedData.map(item => item.category))];
+		};
+
+		// 生成分類選項
+		const generateCategoryOptions = (categories) => {
+			const categorySelect = document.getElementById('category');
+			categorySelect.innerHTML = '<option value="all">全部分類</option>';
+			
+			categories.forEach(category => {
+				const option = document.createElement('option');
+				option.value = category;
+				option.textContent = category;
+				categorySelect.appendChild(option);
+			});
+		};
+
+		// 主函數
+		const initializeCategoryOptions = () => {
+			const parsedData = parseData(data);
+			const uniqueCategories = getUniqueCategories(parsedData);
+			generateCategoryOptions(uniqueCategories);
+		};
+
+		// 在 DOM 加載完成後執行
+		document.addEventListener('DOMContentLoaded', initializeCategoryOptions);
+
+        startButton.addEventListener('click', startGame);
+        input.addEventListener('keypress', handleInput);
+        returnButton.addEventListener('click', returnToSettings);
+
+        function startGame() {
+            settings.style.display = 'none';
+            game.style.display = 'flex';
+            results.style.display = 'none';
+
+			currentSpeed = speedSelect.value;
+			baseSpeed = currentSpeed;
+			penaltyTime = 0;
+			startTime = Date.now();
+
+            const selectedCategory = categorySelect.value;
+            const selectedOrder = orderSelect.value;
+            timeLeft = parseInt(timeSelect.value);
+
+            gameWords = words.filter(word => selectedCategory === 'all' || word.category === selectedCategory);
+            
+            if (selectedOrder === 'random') {
+                gameWords = shuffleArray(gameWords);
+            }
+
+            score = 0;
+            updateScore(0);
+            currentWordIndex = 0;
+            wordContainer.innerHTML = '';
+            input.value = '';
+            pinyinDisplay.textContent = '';
+            input.focus();
+
+            gameSettings = {
+                category: categorySelect.value,
+                order: orderSelect.value,
+                time: timeSelect.value,
+                speed: speedSelect.value
+            };
+
+
+            const selectedTime = timeSelect.value;
+            isStopwatch = selectedTime === 'stopwatch';
+            
+            if (isStopwatch) {
+                timeLeft = 0;
+                startTime = Date.now();
+            } else {
+                timeLeft = parseInt(selectedTime);
+            }
+
+            updateTimer();
+            timerInterval = setInterval(() => {
+                if (isStopwatch) {
+                    timeLeft = Math.floor((Date.now() - startTime) / 1000);
+                } else {
+                    timeLeft--;
+                }
+                updateTimer();
+                if (!isStopwatch && timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+            spawnWord();
+        }
+
+
+
+
+		function spawnWord() {
+			if (currentWordIndex < gameWords.length) {
+				const wordData = gameWords[currentWordIndex];
+				const wordElement = createWordElement(wordData.word);
+				wordContainer.appendChild(wordElement);
+				const fallDuration = getFallDuration();
+				
+				if (currentWord && currentWord.fallTimeout) {
+					clearTimeout(currentWord.fallTimeout);
+				}
+
+				currentWord = { 
+					element: wordElement, 
+					data: wordData,
+					startTime: Date.now()
+				};
+
+				wordElement.style.animation = `fall ${fallDuration}ms linear`;
+
+				currentWord.fallTimeout = setTimeout(() => {
+					if (wordElement.parentNode === wordContainer) {
+						wordFell();
+					}
+				}, fallDuration);
+			} else {
+				currentWordIndex = 0;
+				spawnWord();
+			}
+		}
+
+
+
+        function getFallDuration() {
+            switch (currentSpeed) {
+                case 'slow':
+                    return 18000;
+                case 'fast':
+                    return 8000;
+                case 'medium':
+                default:
+                    return 12000;
+            }
+        }
+
+
+		function getFallDuration() {
+			let baseDuration;
+			switch (baseSpeed) {
+				case 'slow':
+					baseDuration = 15000;
+					break;
+				case 'fast':
+					baseDuration = 7000;
+					break;
+				case 'medium':
+				default:
+					baseDuration = 10000;
+					break;
+			}
+			return Math.max(1000, baseDuration - penaltyTime);
+		}
+
+        function createWordElement(word) {
+            const element = document.createElement('div');
+            element.textContent = word;
+            element.className = 'word';
+            return element;
+        }
+
+		function handleInput(event) {
+			if (event.key === 'Enter') {
+				const typedWord = input.value.trim();
+				if (currentWord && typedWord === currentWord.data.word) {
+					clearTimeout(currentWord.fallTimeout);
+					wordContainer.removeChild(currentWord.element);
+					updateScore(10);
+					currentWordIndex++;
+					pinyinDisplay.textContent = '';
+					penaltyTime = 0;
+					input.value = '';
+					spawnWord();
+				} else {
+					updateScore(-10);
+					if (currentWord) {
+						pinyinDisplay.textContent = `${currentWord.data.pinyin}`; // 拼音提示;
+						penaltyTime -= 1000;
+						updateWordSpeed();
+					}
+					input.value = '';
+				}
+			}
+		}
+
+
+		function updateWordSpeed() {
+			if (currentWord && currentWord.element) {
+				const newDuration = getFallDuration();
+				const elapsedTime = Date.now() - currentWord.startTime;
+				const remainingTime = Math.max(0, newDuration - elapsedTime);
+				
+				currentWord.element.style.animation = 'none';
+				void currentWord.element.offsetWidth;
+				currentWord.element.style.animation = `fall ${remainingTime}ms linear`;
+				
+				clearTimeout(currentWord.fallTimeout);
+				currentWord.fallTimeout = setTimeout(() => {
+					if (currentWord.element.parentNode === wordContainer) {
+						wordFell();
+					}
+				}, remainingTime);
+			}
+		}
+
+
+		function resetWordSpeed() {
+			if (currentWord && currentWord.element) {
+				const newDuration = getFallDuration();
+				currentWord.element.style.animation = 'none';
+				void currentWord.element.offsetWidth;
+				currentWord.element.style.animation = `fall ${newDuration}ms linear`;
+				
+				clearTimeout(currentWord.fallTimeout);
+				currentWord.fallTimeout = setTimeout(() => {
+					if (currentWord.element.parentNode === wordContainer) {
+						wordFell();
+					}
+				}, newDuration);
+			}
+		}
+
+
+
+		function wordFell() {
+			if (currentWord) {
+				updateScore(-10);
+				pinyinDisplay.textContent = `拼音: ${currentWord.data.pinyin}`;
+				respawnWord();
+			}
+		}
+
+
+
+
+
+		function respawnWord() {
+			if (currentWord) {
+				if (currentWord.fallTimeout) {
+					clearTimeout(currentWord.fallTimeout);
+				}
+				if (currentWord.element && currentWord.element.parentNode === wordContainer) {
+					wordContainer.removeChild(currentWord.element);
+				}
+				const wordElement = createWordElement(currentWord.data.word);
+				wordContainer.appendChild(wordElement);
+				const fallDuration = getFallDuration();
+				
+				currentWord.element = wordElement;
+				currentWord.startTime = Date.now();
+
+				wordElement.style.animation = `fall ${fallDuration}ms linear`;
+
+				currentWord.fallTimeout = setTimeout(() => {
+					if (wordElement.parentNode === wordContainer) {
+						wordFell();
+					}
+				}, fallDuration);
+			}
+		}
+
+		function updateScore(points) {
+			score += points;
+			score = Math.max(0, score);
+			scoreDisplay.textContent = `得分: ${score}`;
+		}
+
+        function updateTimer() {
+            timerDisplay.textContent = `時間: ${timeLeft}`;
+        }
+
+
+        const endButton = document.getElementById('end-button');
+        endButton.addEventListener('click', endGame);
+
+
+        function endGame() {
+            endTime = Date.now();
+            clearInterval(timerInterval);
+            if (currentWord && currentWord.fallTimeout) {
+                clearTimeout(currentWord.fallTimeout);
+            }
+            game.style.display = 'none';
+            results.style.display = 'flex';
+            finalScoreDisplay.textContent = `✨得分: ${score}`;
+            
+            const totalSeconds = Math.floor((endTime - startTime) / 1000);
+            
+            // 更新遊戲設置顯示
+            document.getElementById('category-result').textContent = `分類: ${getCategoryName(gameSettings.category)}`;
+            document.getElementById('order-result').textContent = `順序: ${getOrderName(gameSettings.order)}`;
+            document.getElementById('time-result').textContent = `時間: ${totalSeconds} 秒`;
+            document.getElementById('speed-result').textContent = `速度: ${getSpeedName(gameSettings.speed)}`;
+        }
+		
+
+		// 動態生成 getCategoryName 函數
+		function createGetCategoryName() {
+			const categoryOptions = Array.from(document.getElementById('category').options);
+			const categoryMap = Object.fromEntries(
+				categoryOptions.map(option => [option.value, option.textContent])
+			);
+			
+			return function getCategoryName(category) {
+				return categoryMap[category] || category;
+			};
+		}
+
+		// 動態生成 getOrderName 函數
+		function createGetOrderName() {
+			const orderOptions = Array.from(document.getElementById('order').options);
+			const orderMap = Object.fromEntries(
+				orderOptions.map(option => [option.value, option.textContent])
+			);
+			
+			return function getOrderName(order) {
+				return orderMap[order] || order;
+			};
+		}
+
+		// 動態生成 getTimeName 函數
+		function createGetTimeName() {
+			const timeOptions = Array.from(document.getElementById('time').options);
+			const timeMap = Object.fromEntries(
+				timeOptions.map(option => [option.value, `${option.value} 秒`])
+			);
+			
+			return function getTimeName(time) {
+				return timeMap[time] || `${time} 秒`;
+			};
+		}
+
+		// 動態生成 getSpeedName 函數
+		function createGetSpeedName() {
+			const speedOptions = Array.from(document.getElementById('speed').options);
+			const speedMap = Object.fromEntries(
+				speedOptions.map(option => [option.value, option.textContent])
+			);
+			
+			return function getSpeedName(speed) {
+				return speedMap[speed] || speed;
+			};
+		}
+
+        function returnToSettings() {
+            results.style.display = 'none';
+            settings.style.display = 'flex';
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+
+		document.addEventListener('DOMContentLoaded', () => {
+			window.getCategoryName = createGetCategoryName();
+			window.getOrderName = createGetOrderName();
+			window.getTimeName = createGetTimeName();
+			window.getSpeedName = createGetSpeedName();
+		});
+
+    </script>
+</body>
+</html>
